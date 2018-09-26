@@ -3,6 +3,13 @@
 PLAntiRar matches filelists against ADL searches.
 
 
+## Usage
+
+```sh
+./plantirar.pl ADLSearch.xml filelist.xml.bz2
+```
+
+
 ## Dependencies
 
 - Perl 5
