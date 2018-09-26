@@ -80,6 +80,13 @@ my $longest_dest_directory_name = reduce {
     $challenger > $longest ? $challenger : $longest;
 } 0, @file_searches, @directory_searches, @full_path_searches;
 
+our %size_of = (
+    B => 1,
+    KiB => 1024,
+    MiB => 1024 * 1024,
+    GiB => 1024 * 1024 * 1024,
+);
+
 my @path;
 
 while ($filelist_reader->read) {
@@ -87,22 +94,22 @@ while ($filelist_reader->read) {
 
     if ($node_type == &XML_READER_TYPE_ELEMENT) {
         my $element_name = $filelist_reader->name;
-        my $name_attr = $filelist_reader->getAttribute('Name');
 
         next if $element_name eq 'FileListing';
+
+        my $name_attr = $filelist_reader->getAttribute('Name');
+        my $size_attr = $filelist_reader->getAttribute('Size') // 0;
 
         if ($element_name eq 'Directory') {
             $debug && say "Directory:\t$name_attr";
             push @path, $name_attr;
-            match_directory($name_attr, \@path);
+            match_directory($name_attr, \@path, $size_attr);
         } elsif ($element_name eq 'File') {
-            my $size_attr = $filelist_reader->getAttribute('Size');
-
             $debug && say "File:\t$name_attr";
             match_file($name_attr, \@path, $size_attr);
 
             $debug && say "Full Path:\t" . catfile(@path, $name_attr);
-            match_full_path($name_attr, \@path);
+            match_full_path($name_attr, \@path, $size_attr);
         } else {
             die "Unrecognized filelist XML element: '$element_name'";
         }
@@ -113,48 +120,44 @@ while ($filelist_reader->read) {
 }
 
 sub match_directory {
-    my ($name, $path) = @_;
-
+    my ($name, $path, $bytes) = @_;
     foreach my $search (@directory_searches) {
-        if ($name =~ /$search->{search_string}/) {
-            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name);
+        if (match($search, $name, $bytes)) {
+            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name, $bytes);
         }
     }
 }
 
 sub match_file {
     my ($name, $path, $bytes) = @_;
-    my %size_of = (
-        B => 1,
-        KiB => 1024,
-        MiB => 1024 * 1024,
-        GiB => 1024 * 1024 * 1024,
-        );
-
     foreach my $search (@file_searches) {
-        my $min_bytes = $search->{min_size} * $size_of{$search->{size_type}};
-        my $max_bytes = $search->{max_size} * $size_of{$search->{size_type}};
-
-        if (($min_bytes < 0 || $bytes >= $min_bytes) &&
-            ($max_bytes < 0 || $bytes <= $max_bytes) &&
-            $name =~ /$search->{search_string}/)
-        {
-            print_match($search->{dest_directory}, catfile(@{$path}), $name);
+        if (match($search, $name, $bytes)) {
+            print_match($search->{dest_directory}, catfile(@{$path}), $name, $bytes);
         }
     }
 }
 
 sub match_full_path {
-    my ($name, $path) = @_;
-
+    my ($name, $path, $bytes) = @_;
     foreach my $search (@full_path_searches) {
-        if (catfile(@{$path}, $name) =~ /$search->{search_string}/) {
-            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name);
+        if (match($search, catfile(@{$path}, $name), $bytes)) {
+            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name, $bytes);
         }
     }
 }
 
+sub match {
+    my ($search, $subject, $bytes) = @_;
+
+    my $min_bytes = $search->{min_size} * $size_of{$search->{size_type}};
+    my $max_bytes = $search->{max_size} * $size_of{$search->{size_type}};
+
+    return (($min_bytes < 0 || $bytes >= $min_bytes) &&
+            ($max_bytes < 0 || $bytes <= $max_bytes) &&
+            $subject =~ /$search->{search_string}/);
+}
+
 sub print_match {
-    my ($dest_directory, $location, $name) = @_;
-    printf "%-${longest_dest_directory_name}s | %s | %s\n", $dest_directory, $location, $name;
+    my ($dest_directory, $location, $name, $bytes) = @_;
+    printf "%-${longest_dest_directory_name}s | %s | %s | %d\n", $dest_directory, $location, $name, $bytes;
 }
