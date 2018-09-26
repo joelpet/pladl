@@ -1,12 +1,12 @@
-# PLAntiRar
+# plADL
 
-PLAntiRar matches filelists against ADL searches.
+plADL matches filelists against ADL search definitions.
 
 
 ## Usage
 
 ```sh
-./plantirar.pl ADLSearch.xml filelist.xml.bz2
+./pladl.pl ADLSearch.xml filelist.xml.bz2
 ```
 
 
