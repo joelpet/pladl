@@ -23,6 +23,7 @@ use File::Basename qw(dirname);
 use File::Spec::Functions qw(catfile);
 use Getopt::Long qw(GetOptions);
 use IO::Uncompress::Bunzip2 qw(bunzip2 $Bunzip2Error) ;
+use List::Util qw(reduce);
 use Pod::Usage qw(pod2usage);
 use XML::LibXML::Reader;
 use XML::LibXML;
@@ -73,6 +74,12 @@ foreach my $search ($adl_search_xml->findnodes($active_searches_query)) {
     }
 }
 
+my $longest_dest_directory_name = reduce {
+    my $longest = $a;
+    my $challenger = length $b->{dest_directory};
+    $challenger > $longest ? $challenger : $longest;
+} 0, @file_searches, @directory_searches, @full_path_searches;
+
 my @path;
 
 while ($filelist_reader->read) {
@@ -110,7 +117,7 @@ sub match_directory {
 
     foreach my $search (@directory_searches) {
         if ($name =~ /$search->{search_string}/) {
-            say "$search->{dest_directory} " . dirname(catfile(@{$path})) . " : $name";
+            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name);
         }
     }
 }
@@ -132,7 +139,7 @@ sub match_file {
             ($max_bytes < 0 || $bytes <= $max_bytes) &&
             $name =~ /$search->{search_string}/)
         {
-            say "$search->{dest_directory} " . catfile(@{$path}) . " : $name";
+            print_match($search->{dest_directory}, catfile(@{$path}), $name);
         }
     }
 }
@@ -142,7 +149,12 @@ sub match_full_path {
 
     foreach my $search (@full_path_searches) {
         if (catfile(@{$path}, $name) =~ /$search->{search_string}/) {
-            say "$search->{dest_directory} " . dirname(catfile(@{$path})) . " : $name";
+            print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name);
         }
     }
+}
+
+sub print_match {
+    my ($dest_directory, $location, $name) = @_;
+    printf "%-${longest_dest_directory_name}s | %s | %s\n", $dest_directory, $location, $name;
 }
