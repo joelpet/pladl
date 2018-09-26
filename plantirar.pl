@@ -23,6 +23,7 @@ use Data::Dumper;
 use File::Basename;
 use File::Spec::Functions 'catfile';
 use Getopt::Long qw(GetOptions);
+use IO::Uncompress::Bunzip2 qw(bunzip2 $Bunzip2Error) ;
 use Pod::Usage qw(pod2usage);
 use XML::LibXML::Reader;
 use XML::LibXML;
@@ -41,7 +42,9 @@ pod2usage("Usage: $0 <adl_search_file> <filelist_file>")
 my ($adl_search_file, $filelist_file) = @ARGV;
 
 my $adl_search_xml = XML::LibXML->load_xml(location => $adl_search_file);
-my $filelist_reader = XML::LibXML::Reader->new(location => $filelist_file)
+my $filelist_bunzip = new IO::Uncompress::Bunzip2 $filelist_file
+    or die "IO::Uncompress::Bunzip2 failed: $Bunzip2Error\n";
+my $filelist_reader = XML::LibXML::Reader->new(IO => $filelist_bunzip)
     or die "cannot read file '$filelist_file': $!\n";
 
 my @file_searches;
