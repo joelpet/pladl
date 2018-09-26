@@ -19,9 +19,8 @@ use 5.10.0;
 use strict;
 use warnings;
 
-use Data::Dumper;
-use File::Basename;
-use File::Spec::Functions 'catfile';
+use File::Basename qw(dirname);
+use File::Spec::Functions qw(catfile);
 use Getopt::Long qw(GetOptions);
 use IO::Uncompress::Bunzip2 qw(bunzip2 $Bunzip2Error) ;
 use Pod::Usage qw(pod2usage);
