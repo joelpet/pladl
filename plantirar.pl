@@ -148,12 +148,8 @@ sub match_full_path {
 
 sub match {
     my ($search, $subject, $bytes) = @_;
-
-    my $min_bytes = $search->{min_size} * $size_of{$search->{size_type}};
-    my $max_bytes = $search->{max_size} * $size_of{$search->{size_type}};
-
-    return (($min_bytes < 0 || $bytes >= $min_bytes) &&
-            ($max_bytes < 0 || $bytes <= $max_bytes) &&
+    return (($search->{min_size} < 0 || $bytes >= $search->{min_size} * $size_of{$search->{size_type}}) &&
+            ($search->{max_size} < 0 || $bytes <= $search->{max_size} * $size_of{$search->{size_type}}) &&
             $subject =~ /$search->{search_string}/);
 }
 
