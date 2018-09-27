@@ -88,6 +88,7 @@ our %size_of = (
 );
 
 my @path;
+my $total_matches = 0;
 
 while ($filelist_reader->read) {
     my $node_type = $filelist_reader->nodeType;
@@ -103,13 +104,13 @@ while ($filelist_reader->read) {
         if ($element_name eq 'Directory') {
             $debug && say "Directory:\t$name_attr";
             push @path, $name_attr;
-            match_directory($name_attr, \@path, $size_attr);
+            $total_matches += match_directory($name_attr, \@path, $size_attr);
         } elsif ($element_name eq 'File') {
             $debug && say "File:\t$name_attr";
-            match_file($name_attr, \@path, $size_attr);
+            $total_matches += match_file($name_attr, \@path, $size_attr);
 
             $debug && say "Full Path:\t" . catfile(@path, $name_attr);
-            match_full_path($name_attr, \@path, $size_attr);
+            $total_matches += match_full_path($name_attr, \@path, $size_attr);
         } else {
             die "Unrecognized filelist XML element: '$element_name'";
         }
@@ -119,31 +120,42 @@ while ($filelist_reader->read) {
     }
 }
 
+exit 1 if $total_matches == 0;
+
 sub match_directory {
     my ($name, $path, $bytes) = @_;
+    my $matches = 0;
     foreach my $search (@directory_searches) {
         if (match($search, $name, $bytes)) {
+            $matches++;
             print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name, $bytes);
         }
     }
+    return $matches;
 }
 
 sub match_file {
     my ($name, $path, $bytes) = @_;
+    my $matches = 0;
     foreach my $search (@file_searches) {
         if (match($search, $name, $bytes)) {
+            $matches++;
             print_match($search->{dest_directory}, catfile(@{$path}), $name, $bytes);
         }
     }
+    return $matches;
 }
 
 sub match_full_path {
     my ($name, $path, $bytes) = @_;
+    my $matches = 0;
     foreach my $search (@full_path_searches) {
         if (match($search, catfile(@{$path}, $name), $bytes)) {
+            $matches++;
             print_match($search->{dest_directory}, dirname(catfile(@{$path})), $name, $bytes);
         }
     }
+    return $matches;
 }
 
 sub match {
