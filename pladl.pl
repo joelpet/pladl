@@ -54,11 +54,12 @@ my $active_searches_query = '//ADLSearch/SearchGroup/Search/IsActive[text()="1"]
 
 foreach my $search ($adl_search_xml->findnodes($active_searches_query)) {
     my $search_definition = {
-        search_string   => $search->findvalue('./SearchString'),
-        min_size        => $search->findvalue('./MinSize'),
-        max_size        => $search->findvalue('./MaxSize'),
-        size_type       => $search->findvalue('./SizeType'),
-        dest_directory  => $search->findvalue('./DestDirectory'),
+        search_string     => $search->findvalue('./SearchString'),
+        min_size          => $search->findvalue('./MinSize'),
+        max_size          => $search->findvalue('./MaxSize'),
+        size_type         => $search->findvalue('./SizeType'),
+        dest_directory    => $search->findvalue('./DestDirectory'),
+        is_case_sensitive => $search->findvalue('./IsCaseSensitive')
     };
 
     my $source_type = $search->findvalue('./SourceType');
@@ -163,9 +164,10 @@ sub match_full_path {
 
 sub match {
     my ($search, $subject, $bytes) = @_;
+    my $ignore_case = ($search->{is_case_sensitive} == 0) ? "i" : "";
     return (($search->{min_size} < 0 || $bytes >= $search->{min_size} * $size_of{$search->{size_type}}) &&
             ($search->{max_size} < 0 || $bytes <= $search->{max_size} * $size_of{$search->{size_type}}) &&
-            $subject =~ /$search->{search_string}/);
+            $subject =~ /(?$ignore_case)$search->{search_string}/);
 }
 
 sub print_match {
